@@ -1,50 +1,54 @@
 package com.workshop.application.config;
 
+import com.workshop.application.dao.UserDao;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+@Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthFilter jwtAuthFilter;
 
-    private final static List<UserDetails> APPLICATION_USERS = List.of(
-            new User(
-                    "minamyoui@gmail.com",
-                    "mina",
-                    Collections.singleton(new SimpleGrantedAuthority("ROLE_ADMIN"))
-            ),
-            new User(
-                    "hiraimomo@gmail.com",
-                    "momo",
-                    Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))
-            )
-    );
+    private final UserDao userDao;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors().and().csrf().disable()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeHttpRequests()
+                .requestMatchers("/**/auth/**")
+                .permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()
@@ -62,8 +66,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    private PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance(); // TODO: Must be updated with BCryptPass
     }
 
 
@@ -80,15 +90,6 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return new UserDetailsService() {
-            @Override
-            public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-                return APPLICATION_USERS
-                        .stream()
-                        .filter(user -> user.getUsername().equals(email))
-                        .findFirst()
-                        .orElseThrow(() -> new UsernameNotFoundException("No user was found."));
-            }
-        };
+        return userDao::findUserByEmail;
     }
 }
