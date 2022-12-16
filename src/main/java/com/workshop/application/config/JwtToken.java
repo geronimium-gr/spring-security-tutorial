@@ -1,12 +1,19 @@
 package com.workshop.application.config;
 
+import com.workshop.application.models.User;
+import com.workshop.application.repositories.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,8 +21,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Component
-public class JwtToken {
-    private final String SECRET_KEY = "secret";
+@RequiredArgsConstructor
+public class JwtToken implements Serializable {
+
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
+
+    @Serial
+    private static final long serialVersionUID = -2550185165626007488L;
+
+    private final UserRepository userRepository;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -39,6 +54,8 @@ public class JwtToken {
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        User user = userRepository.findUserByEmail(userDetails.getUsername());
+        claims.put("user", user.getId());
         return createToken(claims, userDetails);
     }
 
@@ -62,4 +79,5 @@ public class JwtToken {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
+
 }

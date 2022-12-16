@@ -1,6 +1,8 @@
 package com.workshop.application.config;
 
 import com.workshop.application.dao.UserDao;
+import com.workshop.application.repositories.UserRepository;
+import com.workshop.application.services.JwtUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +22,9 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final UserDao userDao;
+    //private final UserDao userDao;
+
+    private final JwtUserDetailsService jwtUserDetailsService;
     private final JwtToken jwtToken;
 
     @Override
@@ -42,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         userEmail = jwtToken.extractUsername(jwtTokenString);
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null){
-            UserDetails userDetails = userDao.findUserByEmail(userEmail);
+            UserDetails userDetails = jwtUserDetailsService.loadUserByUsername(userEmail);
 
             if (jwtToken.validateToken(jwtTokenString, userDetails)){
                 UsernamePasswordAuthenticationToken authenticationToken =
