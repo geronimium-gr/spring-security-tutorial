@@ -28,15 +28,16 @@ public class JwtAuthenticate implements AuthenticationEntryPoint, Serializable {
         * Avoid using user-friendly errors in the server used sendError to catch errors.
         * */
 //        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+
         response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.getOutputStream().println("{ \"error\": \"" + HttpStatus.UNAUTHORIZED.getReasonPhrase() + "\" }");
+//        response.getOutputStream().println("{ \"error\": \"" + HttpStatus.UNAUTHORIZED.getReasonPhrase() + "\" }");
+        response.getOutputStream().println("{ \"error\": \"" + authException.getClass().getSimpleName() + "\" }");
 
         /*
         * CAME FROM BasicAuthenticationEntryPoint to handle HttpStatus
         * */
 //        response.sendError(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase());
-
 
     }
 }
